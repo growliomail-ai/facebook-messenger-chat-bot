@@ -1,23 +1,43 @@
-require("dotenv").config();
-import express from "express";
-import viewEngine from "./config/viewEngine";
-import initWebRoute from "./routes/web";
-import bodyParser from "body-parser";
+require('dotenv').config();
 
-let app = express();
+const express = require('express');
+const bodyParser = require('body-parser');
 
-// config view engine
-viewEngine(app);
+const app = express();
 
-//use body-parser to post data
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// init all web routes
-initWebRoute(app);
+// VERIFY TOKEN
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'verify_token';
 
-let port = process.env.PORT || 8080;
+// Health check
+app.get('/', (req, res) => {
+  res.send('Facebook Messenger Bot is running 🚀');
+});
 
-app.listen(port, ()=>{
-   console.log(`App is running at the port ${port}`) ;
+// Webhook verification
+app.get('/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+    console.log('Webhook verified successfully');
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
+  }
+});
+
+// Webhook messages
+app.post('/webhook', (req, res) => {
+  console.log('Webhook event received:', JSON.stringify(req.body, null, 2));
+  res.sendStatus(200);
+});
+
+// IMPORTANT: Render port
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`App is running at the port ${PORT}`);
 });
